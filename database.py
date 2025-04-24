@@ -1,11 +1,12 @@
 # database.py
 
 import os
-import datetime
 
+from datetime import timezone, datetime
 from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.sql import func
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -40,7 +41,7 @@ class UserDB(Base):
     hashed_password = Column(String, nullable=False)
     is_active = Column(Boolean, default=True)
     is_verified = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     avatar_url = Column(String, nullable=True)
 
     contacts = relationship("ContactDB", back_populates="owner")
@@ -51,3 +52,14 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+# SQLAlchemy password reset model
+class PasswordResetTokenDB(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True)
+    token = Column(String, unique=True, index=True)
+    expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=func.now())

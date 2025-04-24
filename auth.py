@@ -1,8 +1,7 @@
 # auth.py
 
 import os
-import datetime
-from datetime import timedelta
+from datetime import timedelta, timezone, datetime
 from typing import Optional
 
 from jose import JWTError, jwt
@@ -29,9 +28,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.datetime.now(datetime.timezone.utc) + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.datetime.now(datetime.timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -60,7 +59,6 @@ async def get_current_user(
     # Checking Redis cache
     cached_user_data = redis.get(f"user:{user_id}")
     if cached_user_data:
-        print(f"INFO: Пользователь {user_id} взят из кэша.")  # Добавлено логирование
         try:
             cached_user = models.CachedUser.model_validate_json(cached_user_data)
             user = crud.get_user(db, user_id=cached_user.id)
@@ -77,7 +75,6 @@ async def get_current_user(
             pass  # Go to query from database
     
     # If not in cache or validation error occurred, we access the database
-    print(f"INFO: Пользователь {user_id} запрошен из базы данных.")  # Добавлено логирование
     user = crud.get_user(db, user_id=token_data.id)
     if user is None:
         raise credentials_exception

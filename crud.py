@@ -1,7 +1,9 @@
 # crud.py
 
-from typing import List
-from datetime import date, timedelta
+import os
+import secrets
+from typing import List, Optional
+from datetime import date, timedelta, timezone, datetime
 from calendar import isleap
 
 from sqlalchemy import and_, func
@@ -10,9 +12,12 @@ from passlib.context import CryptContext
 
 import models, database
 
+PASSWORD_RESET_TOKEN_EXPIRY_MINUTES = int(os.environ.get("PASSWORD_RESET_TOKEN_EXPIRY_MINUTES", 15))
+
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
+# password
 def get_password_hash(password):
     return pwd_context.hash(password)
 
@@ -21,6 +26,32 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
+def create_password_reset_token(db: Session, email: str) -> database.PasswordResetTokenDB:
+    token = secrets.token_urlsafe(32)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRY_MINUTES)
+    db_token = database.PasswordResetTokenDB(email=email, token=token, expires_at=expires_at)
+    db.add(db_token)
+    db.commit()
+    db.refresh(db_token)
+    return db_token
+
+
+def get_password_reset_token(db: Session, token: str) -> Optional[database.PasswordResetTokenDB]:
+    return db.query(database.PasswordResetTokenDB).filter(database.PasswordResetTokenDB.token == token).first()
+
+
+def delete_password_reset_token(db: Session, token: str):
+    db_token = get_password_reset_token(db, token)
+    if db_token:
+        db.delete(db_token)
+        db.commit()
+
+
+def get_password_reset_token_by_email(db: Session, email: str) -> Optional[database.PasswordResetTokenDB]:
+    return db.query(database.PasswordResetTokenDB).filter(database.PasswordResetTokenDB.email == email).first()
+
+
+# user
 def get_user_by_email(db: Session, email: str):
     return db.query(database.UserDB).filter(database.UserDB.email == email).first()
 
@@ -51,6 +82,7 @@ def update_user_avatar(db: Session, user_id: int, avatar_url: str):
     return None
 
 
+# contact
 def get_contact(db: Session, contact_id: int, user_id: int):
     return db.query(database.ContactDB).filter(database.ContactDB.id == contact_id, database.ContactDB.user_id == user_id).first()
 

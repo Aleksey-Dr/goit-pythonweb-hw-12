@@ -9,15 +9,15 @@ uvicorn = "*"
 sqlalchemy = "*"
 psycopg2-binary = "*"
 python-dotenv = "*"
-passlib = {extras = ["bcrypt"], version = "*"}
 python-jose = {extras = ["cryptography"], version = "*"}
 email-validator = "*"
-fastapi-mail = "*"
 python-multipart = "*"
 cloudinary = "*"
 slowapi = "*"
 python-jwt = "*"
 redis = "*"
+fastapi-mail = "*"
+passlib = "*"
 
 [dev-packages]
 

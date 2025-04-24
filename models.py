@@ -102,3 +102,20 @@ class Email(BaseModel):
 
 class AvatarUpdate(BaseModel):
     file: str = Field(..., description="Base64 encoded image")
+
+
+# Pydantic password reset models
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordReset(BaseModel):
+    token: str
+    new_password: str
+    confirm_new_password: str
+
+
+class PasswordResetToken(BaseModel):
+    token: str
+    email: EmailStr
+    expires_at: datetime
