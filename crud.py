@@ -83,6 +83,20 @@ def update_user_avatar(db: Session, user_id: int, avatar_url: str):
     return None
 
 
+def update_user_refresh_token(db: Session, user_id: int, refresh_token: str):
+    db_user = db.query(database.UserDB).filter(database.UserDB.id == user_id).first()
+    if db_user:
+        db_user.refresh_token = refresh_token
+        db.commit()
+        db.refresh(db_user)
+        return db_user
+    return None
+
+
+def get_user_by_refresh_token(db: Session, refresh_token: str):
+    return db.query(database.UserDB).filter(database.UserDB.refresh_token == refresh_token).first()
+
+
 # contact
 def get_contact(db: Session, contact_id: int, user_id: int):
     return db.query(database.ContactDB).filter(database.ContactDB.id == contact_id, database.ContactDB.user_id == user_id).first()

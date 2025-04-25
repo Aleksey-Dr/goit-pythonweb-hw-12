@@ -47,12 +47,12 @@ async def register_user(user: models.UserCreate, db: Session = Depends(get_db)):
 
 # login
 # Endpoint for user login and obtaining JWT token
-@app.post("/login", response_model=models.Token)
+@app.post("/login", response_model=models.TokenPair)
 async def login_for_access_token(
-        form_data: OAuth2PasswordRequestForm = Depends(),
-        db: Session = Depends(get_db),
-        redis: redis.Redis = Depends(get_redis), # Redis dependency
-    ):
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db),
+    redis: redis.Redis = Depends(get_redis), # Redis dependency
+):
     user_db = crud.get_user_by_email(db, email=form_data.username)
     if not user_db or not crud.verify_password(form_data.password, user_db.hashed_password):
         raise HTTPException(
@@ -64,6 +64,8 @@ async def login_for_access_token(
     access_token = auth.create_access_token(
         data={"sub": user_db.email, "id": user_db.id}, expires_delta=access_token_expires
     )
+    refresh_token = auth.create_refresh_token(user_db.id)
+    crud.update_user_refresh_token(db, user_db.id, refresh_token)
 
     # Convert database.UserDB to models.CachedUser
     cached_user = models.CachedUser.model_validate(user_db)
@@ -71,6 +73,21 @@ async def login_for_access_token(
     # Cache the user after a successful login
     redis.setex(f"user:{cached_user.id}", auth.USER_CACHE_EXPIRE_SECONDS, cached_user.model_dump_json())
 
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+# Endpoint for refreshing access token
+@app.post("/refresh-token", response_model=models.Token)
+async def refresh_access_token(refresh_token: str = Form(...), db: Session = Depends(get_db)):
+    user = crud.get_user_by_refresh_token(db, refresh_token)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(data={"sub": user.email, "id": user.id}, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
 

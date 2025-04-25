@@ -55,6 +55,7 @@ class User(UserBase):
     created_at: datetime
     avatar_url: Optional[str] = None
     role: str = "user"
+    refresh_token: Optional[str] = None
 
     model_config = {
         "from_attributes": True
@@ -97,6 +98,12 @@ class Token(BaseModel):
 class TokenData(BaseModel):
     email: Optional[str] = None
     id: Optional[int] = None
+
+
+class TokenPair(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
 
 
 class Email(BaseModel):
