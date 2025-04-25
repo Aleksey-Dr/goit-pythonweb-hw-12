@@ -19,14 +19,43 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # password
 def get_password_hash(password):
+    """
+    Hashes the given password using bcrypt.
+
+    Args:
+        password (str): The plain text password to hash.
+
+    Returns:
+        str: The hashed password.
+    """
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password, hashed_password):
+    """
+    Verifies a plain text password against a hashed password.
+
+    Args:
+        plain_password (str): The plain text password to verify.
+        hashed_password (str): The hashed password to compare against.
+
+    Returns:
+        bool: True if the plain password matches the hashed password, False otherwise.
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 
 def create_password_reset_token(db: Session, email: str) -> database.PasswordResetTokenDB:
+    """
+    Creates a new password reset token for the given email address.
+
+    Args:
+        db (Session): The database session.
+        email (str): The email address for which to create the reset token.
+
+    Returns:
+        database.PasswordResetTokenDB: The newly created password reset token database object.
+    """
     token = secrets.token_urlsafe(32)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=PASSWORD_RESET_TOKEN_EXPIRY_MINUTES)
     db_token = database.PasswordResetTokenDB(email=email, token=token, expires_at=expires_at)
@@ -37,10 +66,27 @@ def create_password_reset_token(db: Session, email: str) -> database.PasswordRes
 
 
 def get_password_reset_token(db: Session, token: str) -> Optional[database.PasswordResetTokenDB]:
+    """
+     Retrieves a password reset token from the database by its token value.
+
+    Args:
+        db (Session): The database session.
+        token (str): The password reset token string to search for.
+
+    Returns:
+        Optional[database.PasswordResetTokenDB]: The password reset token database object if found, otherwise None.
+    """
     return db.query(database.PasswordResetTokenDB).filter(database.PasswordResetTokenDB.token == token).first()
 
 
 def delete_password_reset_token(db: Session, token: str):
+    """
+    Deletes a password reset token from the database by its token value.
+
+    Args:
+        db (Session): The database session.
+        token (str): The password reset token string to delete.
+    """
     db_token = get_password_reset_token(db, token)
     if db_token:
         db.delete(db_token)
@@ -48,19 +94,59 @@ def delete_password_reset_token(db: Session, token: str):
 
 
 def get_password_reset_token_by_email(db: Session, email: str) -> Optional[database.PasswordResetTokenDB]:
+    """
+    Retrieves the most recent password reset token for a given email address.
+
+    Args:
+        db (Session): The database session.
+        email (str): The email address to search for.
+
+    Returns:
+        Optional[database.PasswordResetTokenDB]: The password reset token database object if found, otherwise None.
+    """
     return db.query(database.PasswordResetTokenDB).filter(database.PasswordResetTokenDB.email == email).first()
 
 
 # user
 def get_user_by_email(db: Session, email: str):
+    """
+    Retrieves a user from the database by their email address.
+
+    Args:
+        db (Session): The database session.
+        email (str): The email address to search for.
+
+    Returns:
+        Optional[database.UserDB]: The user database object if found, otherwise None.
+    """
     return db.query(database.UserDB).filter(database.UserDB.email == email).first()
 
 
 def get_user(db: Session, user_id: int):
+    """
+    Retrieves a user from the database by their ID.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user to retrieve.
+
+    Returns:
+        Optional[database.UserDB]: The user database object if found, otherwise None.
+    """
     return db.query(database.UserDB).filter(database.UserDB.id == user_id).first()
 
 
 def create_user(db: Session, user: models.UserCreate):
+    """
+    Creates a new user in the database.
+
+    Args:
+        db (Session): The database session.
+        user (models.UserCreate): The user data to create.
+
+    Returns:
+        database.UserDB: The newly created user database object.
+    """
     db_user = database.UserDB(
         email=user.email,
         hashed_password=get_password_hash(user.password),
@@ -74,6 +160,17 @@ def create_user(db: Session, user: models.UserCreate):
 
 
 def update_user_avatar(db: Session, user_id: int, avatar_url: str):
+    """
+    Updates the avatar URL of an existing user.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user to update.
+        avatar_url (str): The new avatar URL.
+
+    Returns:
+        Optional[database.UserDB]: The updated user database object if found, otherwise None.
+    """
     db_user = db.query(database.UserDB).filter(database.UserDB.id == user_id).first()
     if db_user:
         db_user.avatar_url = avatar_url
@@ -84,6 +181,17 @@ def update_user_avatar(db: Session, user_id: int, avatar_url: str):
 
 
 def update_user_refresh_token(db: Session, user_id: int, refresh_token: str):
+    """
+    Updates the refresh token of an existing user.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user to update.
+        refresh_token (str): The new refresh token.
+
+    Returns:
+        Optional[database.UserDB]: The updated user database object if found, otherwise None.
+    """
     db_user = db.query(database.UserDB).filter(database.UserDB.id == user_id).first()
     if db_user:
         db_user.refresh_token = refresh_token
@@ -94,16 +202,52 @@ def update_user_refresh_token(db: Session, user_id: int, refresh_token: str):
 
 
 def get_user_by_refresh_token(db: Session, refresh_token: str):
+    """
+    Retrieves a user from the database by their refresh token.
+
+    Args:
+        db (Session): The database session.
+        refresh_token (str): The refresh token to search for.
+
+    Returns:
+        Optional[database.UserDB]: The user database object if found, otherwise None.
+    """
     return db.query(database.UserDB).filter(database.UserDB.refresh_token == refresh_token).first()
 
 
 # contact
 def get_contact(db: Session, contact_id: int, user_id: int):
+    """
+    Retrieves a specific contact by its ID for a given user.
+
+    Args:
+        db (Session): The database session.
+        contact_id (int): The ID of the contact to retrieve.
+        user_id (int): The ID of the user who owns the contact.
+
+    Returns:
+        Optional[database.ContactDB]: The contact database object if found, otherwise None.
+    """
     return db.query(database.ContactDB).filter(database.ContactDB.id == contact_id, database.ContactDB.user_id == user_id).first()
 
 
 def get_contacts(db: Session, user_id: int, skip: int = 0, limit: int = 100, first_name: str = None,
                  last_name: str = None, email: str = None):
+    """
+    Retrieves a list of contacts for a specific user with optional filtering.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user whose contacts to retrieve.
+        skip (int, optional): The number of contacts to skip. Defaults to 0.
+        limit (int, optional): The maximum number of contacts to return. Defaults to 100.
+        first_name (Optional[str], optional): Filter contacts by first name (case-insensitive). Defaults to None.
+        last_name (Optional[str], optional): Filter contacts by last name (case-insensitive). Defaults to None.
+        email (Optional[str], optional): Filter contacts by email address (case-insensitive). Defaults to None.
+
+    Returns:
+        List[database.ContactDB]: A list of contact database objects matching the criteria.
+    """
     query = db.query(database.ContactDB).filter(database.ContactDB.user_id == user_id)
     if first_name:
         query = query.filter(database.ContactDB.first_name.ilike(f"%{first_name}%"))
@@ -115,6 +259,17 @@ def get_contacts(db: Session, user_id: int, skip: int = 0, limit: int = 100, fir
 
 
 def create_contact(db: Session, contact: models.ContactCreate, user_id: int):
+    """
+    Creates a new contact for a specific user.
+
+    Args:
+        db (Session): The database session.
+        contact (models.ContactCreate): The contact data to create.
+        user_id (int): The ID of the user who owns the contact.
+
+    Returns:
+        database.ContactDB: The newly created contact database object.
+    """
     db_contact = database.ContactDB(**contact.model_dump(), user_id=user_id)
     db.add(db_contact)
     db.commit()
@@ -123,6 +278,18 @@ def create_contact(db: Session, contact: models.ContactCreate, user_id: int):
 
 
 def update_contact(db: Session, contact_id: int, user_id: int, contact: models.ContactUpdate):
+    """
+    Updates an existing contact for a specific user.
+
+    Args:
+        db (Session): The database session.
+        contact_id (int): The ID of the contact to update.
+        user_id (int): The ID of the user who owns the contact.
+        contact (models.ContactUpdate): The updated contact data.
+
+    Returns:
+        Optional[database.ContactDB]: The updated contact database object if found, otherwise None.
+    """
     db_contact = db.query(database.ContactDB).filter(database.ContactDB.id == contact_id, database.ContactDB.user_id == user_id).first()
     if db_contact:
         for key, value in contact.model_dump(exclude_unset=True).items():
@@ -133,6 +300,17 @@ def update_contact(db: Session, contact_id: int, user_id: int, contact: models.C
 
 
 def delete_contact(db: Session, contact_id: int, user_id: int):
+    """
+    Deletes a specific contact by its ID for a given user.
+
+    Args:
+        db (Session): The database session.
+        contact_id (int): The ID of the contact to delete.
+        user_id (int): The ID of the user who owns the contact.
+
+    Returns:
+        bool: True if the contact was successfully deleted, False otherwise.
+    """
     db_contact = db.query(database.ContactDB).filter(database.ContactDB.id == contact_id, database.ContactDB.user_id == user_id).first()
     if db_contact:
         db.delete(db_contact)
@@ -142,6 +320,18 @@ def delete_contact(db: Session, contact_id: int, user_id: int):
 
 
 def get_upcoming_birthdays(db: Session, user_id: int):
+    """
+    Retrieves a list of contacts with birthdays in the next 7 days for a specific user.
+
+    This function handles the edge case of February 29th in non-leap years by considering it as February 28th.
+
+    Args:
+        db (Session): The database session.
+        user_id (int): The ID of the user whose contacts to check.
+
+    Returns:
+        List[database.ContactDB]: A list of contact database objects with upcoming birthdays.
+    """
     today = date.today()
     next_week = today + timedelta(days=7)
     upcoming_birthdays = []

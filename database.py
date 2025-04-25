@@ -19,6 +19,20 @@ Base = declarative_base()
 
 
 class ContactDB(Base):
+    """
+    SQLAlchemy model representing a contact in the database.
+
+    Attributes:
+        id (int): The primary key and unique identifier for the contact.
+        first_name (str): The first name of the contact.
+        last_name (str): The last name of the contact.
+        email (str): The unique email address of the contact.
+        phone_number (str): The phone number of the contact.
+        birthday (date): The birthday of the contact.
+        additional_data (Optional[str]): Additional information about the contact (nullable).
+        user_id (int): Foreign key linking this contact to the user who owns it.
+        owner (UserDB): Relationship to the UserDB model representing the owner of the contact.
+    """
     __tablename__ = "contacts"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -33,6 +47,21 @@ class ContactDB(Base):
     owner = relationship("UserDB", back_populates="contacts")
 
 class UserDB(Base):
+    """
+    SQLAlchemy model representing a user in the database.
+
+    Attributes:
+        id (int): The primary key and unique identifier for the user.
+        username (str): The unique username of the user.
+        email (str): The unique email address of the user.
+        hashed_password (str): The hashed password of the user.
+        is_active (bool): Indicates if the user account is active (default: True).
+        is_verified (bool): Indicates if the user's email has been verified (default: False).
+        created_at (datetime): The timestamp when the user account was created (default: current UTC time).
+        avatar_url (Optional[str]): The URL of the user's avatar image (nullable).
+        role (str): The role of the user in the system (default: "user").
+       contacts (List[ContactDB]): Relationship to the ContactDB model representing the contacts owned by this user.
+    """
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -48,6 +77,12 @@ class UserDB(Base):
     contacts = relationship("ContactDB", back_populates="owner")
 
 def get_db():
+    """
+    Dependency function to get a database session.
+
+    Yields:
+        Session: A SQLAlchemy database session. The session is closed after the request.
+    """
     db = SessionLocal()
     try:
         yield db
@@ -57,6 +92,16 @@ def get_db():
 
 # SQLAlchemy password reset model
 class PasswordResetTokenDB(Base):
+    """
+    SQLAlchemy model representing a password reset token in the database.
+
+    Attributes:
+        id (int): The primary key and unique identifier for the token.
+        email (str): The email address associated with the password reset request.
+        token (str): The unique password reset token string.
+        expires_at (datetime): The timestamp when the token expires.
+       created_at (datetime): The timestamp when the token was created (default: current database time).
+    """
     __tablename__ = "password_reset_tokens"
 
     id = Column(Integer, primary_key=True, index=True)

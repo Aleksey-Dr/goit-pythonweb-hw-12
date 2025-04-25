@@ -23,7 +23,16 @@ conf = ConnectionConfig(
     VALIDATE_CERTS=True
 )
 
+
 async def send_verification_email(email: str, token: str, app: FastAPI):
+    """
+    Sends a verification email to the specified email address.
+
+    Args:
+        email (str): The recipient's email address.
+        token (str): The verification token to include in the email link.
+        app (FastAPI): The FastAPI application instance.
+    """
     message = MessageSchema(
         subject="Verify your email",
         recipients=[email],
@@ -37,10 +46,30 @@ async def send_verification_email(email: str, token: str, app: FastAPI):
     fm = FastMail(conf)
     await fm.send_message(message)
 
+
 def generate_verification_token(email: str):
+    """
+    Generates a JWT verification token for the given email address.
+
+    Args:
+        email (str): The email address to generate the token for.
+    Returns:
+        str: The generated JWT verification token.
+    """
     return jwt.encode({"sub": email}, os.environ.get("SECRET_KEY"), algorithm="HS256")
 
+
 async def verify_email(token: str, db: Session):
+    """
+    Verifies the email address associated with the given token.
+
+    Args:
+        token (str): The verification token received via email.
+        db (Session): The database session.
+
+    Returns:
+        bool: True if the token is valid and the email was successfully verified, False otherwise.
+    """
     try:
         payload = jwt.decode(token, os.environ.get("SECRET_KEY"), algorithms=["HS256"])
         email = payload.get("sub")

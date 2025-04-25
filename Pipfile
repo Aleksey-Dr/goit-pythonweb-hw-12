@@ -19,6 +19,9 @@ redis = "*"
 fastapi-mail = "*"
 passlib = "*"
 bcrypt = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
+recommonmark = "*"
 
 [dev-packages]
 
