@@ -64,7 +64,8 @@ def create_user(db: Session, user: models.UserCreate):
     db_user = database.UserDB(
         email=user.email,
         hashed_password=get_password_hash(user.password),
-        username=user.username
+        username=user.username,
+        role="user"
     )
     db.add(db_user)
     db.commit()

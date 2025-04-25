@@ -18,6 +18,7 @@ python-jwt = "*"
 redis = "*"
 fastapi-mail = "*"
 passlib = "*"
+bcrypt = "*"
 
 [dev-packages]
 

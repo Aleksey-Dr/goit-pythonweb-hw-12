@@ -35,6 +35,7 @@ def get_db():
         db.close()
 
 
+# registration
 # Endpoint for new user registration
 @app.post("/register", response_model=models.UserResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(user: models.UserCreate, db: Session = Depends(get_db)):
@@ -44,6 +45,7 @@ async def register_user(user: models.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
 
 
+# login
 # Endpoint for user login and obtaining JWT token
 @app.post("/login", response_model=models.Token)
 async def login_for_access_token(
@@ -72,12 +74,68 @@ async def login_for_access_token(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+# admin
+# Dependency for selecting a threaded active administrator
+async def get_current_active_admin(current_user: models.User = Depends(auth.get_current_active_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough privileges")
+    return current_user
+
+
+# Endpoint for creating a new administrator (accessible only to other administrators)
+@app.post("/admin/create-admin", response_model=models.UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_active_admin)])
+async def create_admin(admin_create: models.UserCreate, current_admin: models.User = Depends(get_current_active_admin), db: Session = Depends(get_db)):
+    db_user = crud.get_user_by_email(db, email=admin_create.email)
+    if db_user:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+    return crud.create_user(db=db, user=admin_create)
+
+
+# Endpoint for updating user avatar (available only to administrators)
+@app.post("/users/me/avatar", response_model=models.UserResponse, dependencies=[Depends(auth.get_current_active_user), Depends(get_current_active_admin)])
+async def update_user_avatar(file: str = Form(...), current_admin: models.User = Depends(auth.get_current_active_user), db: Session = Depends(get_db)): # Зверніть увагу на зміну current_admin на current_user
+    avatar_url = await cloudinary_utils.upload_avatar(file)
+    if avatar_url:
+        updated_user_db = crud.update_user_avatar(db=db, user_id=current_admin.id, avatar_url=avatar_url)
+        if updated_user_db:
+            # Convert database.UserDB to schemas.UserResponse before returning
+            return models.UserResponse.model_validate(updated_user_db)
+        else:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update avatar in database")
+    else:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload avatar to Cloudinary")
+
+
+# Endpoint for updating user roles (available only to administrators)
+class UserRoleUpdate(models.BaseModel):
+    role: str
+
+@app.put("/users/{user_id}/role", response_model=models.UserResponse, dependencies=[Depends(get_current_active_admin)])
+async def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, user_id=user_id)
+    if not db_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    db_user.role = role_update.role
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+# Endpoint for getting a list of all users (available only to administrators)
+@app.get("/users", response_model=List[models.UserResponse], dependencies=[Depends(get_current_active_admin)])
+async def get_all_users(db: Session = Depends(get_db)):
+    users = crud.get_users(db)
+    return users
+
+
+# user
 # Endpoint for obtaining information about the current user
 @app.get("/users/me", response_model=models.UserResponse, dependencies=[Depends(auth.get_current_active_user), Depends(rate_limit.limit_user_me)])
 async def get_users_me(current_user: models.User = Depends(auth.get_current_active_user)):
     return current_user
 
 
+# verification email
 # Endpoint for sending email verification email
 @app.post("/send-verification-email", status_code=status.HTTP_202_ACCEPTED)
 async def send_verification(
@@ -99,6 +157,7 @@ async def verify_email(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
 
 
+# contacts
 # Endpoints for contacts (requires authentication)
 @app.post("/contacts", response_model=models.Contact, status_code=status.HTTP_201_CREATED, dependencies=[Depends(auth.get_current_active_user)])
 async def create_contact(contact: models.ContactCreate, current_user: models.User = Depends(auth.get_current_active_user), db: Session = Depends(get_db)):
@@ -143,20 +202,7 @@ async def get_upcoming_birthdays(current_user: models.User = Depends(auth.get_cu
     return crud.get_upcoming_birthdays(db, user_id=current_user.id)
 
 
-# Endpoint for updating user avatar
-@app.post("/users/me/avatar", response_model=models.User, dependencies=[Depends(auth.get_current_active_user)])
-async def update_user_avatar(file: str = Form(...), current_user: models.User = Depends(auth.get_current_active_user), db: Session = Depends(get_db)):
-    avatar_url = await cloudinary_utils.upload_avatar(file)
-    if avatar_url:
-        updated_user = crud.update_user_avatar(db=db, user_id=current_user.id, avatar_url=avatar_url)
-        if updated_user:
-            return updated_user
-        else:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update avatar in database")
-    else:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to upload avatar to Cloudinary")
-    
-
+# password
 # Endpoint for password reset request
 @app.post("/password-reset-request", status_code=status.HTTP_202_ACCEPTED)
 async def request_password_reset(body: models.PasswordResetRequest, request: Request, db: Session = Depends(get_db)):

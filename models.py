@@ -37,6 +37,7 @@ class Contact(ContactBase):
     }
 
 
+# User
 class UserBase(BaseModel):
     email: EmailStr
     password: str
@@ -53,6 +54,7 @@ class User(UserBase):
     is_verified: bool = False
     created_at: datetime
     avatar_url: Optional[str] = None
+    role: str = "user"
 
     model_config = {
         "from_attributes": True
@@ -67,6 +69,7 @@ class UserResponse(BaseModel):
     is_verified: bool = False
     created_at: datetime
     avatar_url: Optional[str] = None
+    role: str = "user"
 
     model_config = {
         "from_attributes": True

@@ -43,6 +43,7 @@ class UserDB(Base):
     is_verified = Column(Boolean, default=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     avatar_url = Column(String, nullable=True)
+    role = Column(String(50), default="user")
 
     contacts = relationship("ContactDB", back_populates="owner")
 
