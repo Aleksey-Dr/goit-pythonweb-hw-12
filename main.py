@@ -138,28 +138,18 @@ async def refresh_access_token(refresh_token: str = Form(...), db: Session = Dep
 
 
 # admin
-# Dependency for selecting a threaded active administrator
-async def get_current_active_admin(current_user: models.User = Depends(auth.get_current_active_user)):
-    """
-    Checks if the current user is an active administrator.
-
-    Args:
-        current_user (models.User): The current authenticated user.
-
-    Returns:
-        models.User: The current user if it is an administrator.
-
-    Raises:
-        HTTPException: If the current user does not have the "admin" role (status code 403).
-    """
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough privileges")
-    return current_user
-
-
 # Endpoint for creating a new administrator (accessible only to other administrators)
-@app.post("/admin/create-admin", response_model=models.UserResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(get_current_active_admin)])
-async def create_admin(admin_create: models.UserCreate, current_admin: models.User = Depends(get_current_active_admin), db: Session = Depends(get_db)):
+@app.post(
+        "/admin/create-admin",
+        response_model=models.UserResponse,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=[Depends(auth.get_current_active_admin)]
+    )
+async def create_admin(
+    admin_create: models.UserCreate,
+    current_admin: models.User = Depends(auth.get_current_active_admin),
+    db: Session = Depends(get_db)
+):
     """
     Creates a new administrator in the system (available only to administrators).
 
@@ -181,7 +171,7 @@ async def create_admin(admin_create: models.UserCreate, current_admin: models.Us
 
 
 # Endpoint for updating user avatar (available only to administrators)
-@app.post("/users/me/avatar", response_model=models.UserResponse, dependencies=[Depends(auth.get_current_active_user), Depends(get_current_active_admin)])
+@app.post("/users/me/avatar", response_model=models.UserResponse, dependencies=[Depends(auth.get_current_active_user), Depends(auth.get_current_active_admin)])
 async def update_user_avatar(file: str = Form(...), current_admin: models.User = Depends(auth.get_current_active_user), db: Session = Depends(get_db)): # Зверніть увагу на зміну current_admin на current_user
     """
     Updates the current admin avatar (only available to admins).
@@ -214,7 +204,7 @@ class UserRoleUpdate(models.BaseModel):
     """Model for updating user role."""
     role: str
 
-@app.put("/users/{user_id}/role", response_model=models.UserResponse, dependencies=[Depends(get_current_active_admin)])
+@app.put("/users/{user_id}/role", response_model=models.UserResponse, dependencies=[Depends(auth.get_current_active_admin)])
 async def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Session = Depends(get_db)):
     """
     Updates the role of the specified user (only available to administrators).
@@ -240,7 +230,7 @@ async def update_user_role(user_id: int, role_update: UserRoleUpdate, db: Sessio
 
 
 # Endpoint for getting a list of all users (available only to administrators)
-@app.get("/users", response_model=List[models.UserResponse], dependencies=[Depends(get_current_active_admin)])
+@app.get("/users", response_model=List[models.UserResponse], dependencies=[Depends(auth.get_current_active_admin)])
 async def get_all_users(db: Session = Depends(get_db)):
     """
     Returns a list of all registered users (only available to administrators).

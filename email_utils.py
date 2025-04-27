@@ -60,16 +60,6 @@ def generate_verification_token(email: str):
 
 
 async def verify_email(token: str, db: Session):
-    """
-    Verifies the email address associated with the given token.
-
-    Args:
-        token (str): The verification token received via email.
-        db (Session): The database session.
-
-    Returns:
-        bool: True if the token is valid and the email was successfully verified, False otherwise.
-    """
     try:
         payload = jwt.decode(token, os.environ.get("SECRET_KEY"), algorithms=["HS256"])
         email = payload.get("sub")
@@ -77,6 +67,7 @@ async def verify_email(token: str, db: Session):
             return False
     except JWTError:
         return False
+
     user = crud.get_user_by_email(db, email=email)
     if user and not user.is_verified:
         user.is_verified = True

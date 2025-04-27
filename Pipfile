@@ -12,7 +12,6 @@ python-dotenv = "*"
 python-jose = {extras = ["cryptography"], version = "*"}
 email-validator = "*"
 python-multipart = "*"
-cloudinary = "*"
 slowapi = "*"
 python-jwt = "*"
 redis = "*"
@@ -22,6 +21,11 @@ bcrypt = "*"
 sphinx = "*"
 sphinx-rtd-theme = "*"
 recommonmark = "*"
+httpx = "*"
+pytest-asyncio = "*"
+pytest = "*"
+pytest-cov = "*"
+cloudinary = "*"
 
 [dev-packages]
 

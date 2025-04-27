@@ -153,3 +153,22 @@ def get_current_active_user(current_user: models.User = Depends(get_current_user
     if not current_user.is_active:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
     return current_user
+
+
+# Dependency for selecting a threaded active administrator
+async def get_current_active_admin(current_user: models.User = Depends(get_current_active_user)):
+    """
+    Checks if the current user is an active administrator.
+
+    Args:
+        current_user (models.User): The current authenticated user.
+
+    Returns:
+        models.User: The current user if it is an administrator.
+
+    Raises:
+        HTTPException: If the current user does not have the "admin" role (status code 403).
+    """
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not enough privileges")
+    return current_user

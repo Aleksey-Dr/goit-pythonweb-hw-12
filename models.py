@@ -5,7 +5,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, EmailStr, Field
 
-
+# contacts
 class ContactBase(BaseModel):
     """
     Base Pydantic model for contact information.

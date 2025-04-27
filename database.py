@@ -5,7 +5,7 @@ import os
 from datetime import timezone, datetime
 from sqlalchemy import create_engine, Column, Integer, String, Date, Boolean, DateTime, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, declarative_base
 from sqlalchemy.sql import func
 from dotenv import load_dotenv
 
@@ -73,6 +73,7 @@ class UserDB(Base):
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     avatar_url = Column(String, nullable=True)
     role = Column(String(50), default="user")
+    refresh_token = Column(String, nullable=True)
 
     contacts = relationship("ContactDB", back_populates="owner")
 
